@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +22,19 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// addrToLocalURL converts a listen address (e.g. ":9090", "0.0.0.0:9090")
+// to a localhost HTTP URL (e.g. "http://localhost:9090").
+func addrToLocalURL(addr string) string {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil || port == "" {
+		return "http://localhost:8080"
+	}
+	if host == "" || host == "0.0.0.0" {
+		host = "localhost"
+	}
+	return "http://" + host + ":" + port
 }
 
 func serveCmd() *cobra.Command {
@@ -77,7 +91,7 @@ func serveCmd() *cobra.Command {
 			}
 
 			srvCfg := relay.ServerConfig{
-				BaseURL:            envOr("WT_BASE_URL", "http://localhost:8080"),
+				BaseURL:            envOr("WT_BASE_URL", addrToLocalURL(addrFlag)),
 				AppHost:            os.Getenv("WT_APP_HOST"),
 				WSHost:             os.Getenv("WT_WS_HOST"),
 				JWTSecret:          os.Getenv("WT_JWT_SECRET"),
@@ -206,7 +220,7 @@ func serveCmd() *cobra.Command {
 				if localFlag {
 					fmt.Println()
 					fmt.Println("next: wt start --local")
-					fmt.Println("then: open http://localhost:8080")
+					fmt.Printf("then: open %s\n", addrToLocalURL(addrFlag))
 				}
 				errCh <- httpSrv.ListenAndServe()
 			}()

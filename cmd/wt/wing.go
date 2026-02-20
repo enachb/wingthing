@@ -823,7 +823,11 @@ func wingStartCmd() *cobra.Command {
 			fmt.Printf("  log: %s\n", wingLogPath())
 			fmt.Println()
 			if localFlag {
-				fmt.Println("open http://localhost:8080 to start a terminal")
+				localURL := roostFlag
+				if localURL == "" {
+					localURL = envOr("WT_LOCAL_ADDR", "http://localhost:8080")
+				}
+				fmt.Printf("open %s to start a terminal\n", localURL)
 			} else {
 				fmt.Println("open https://app.wingthing.ai to start a terminal")
 			}
@@ -841,7 +845,7 @@ func wingStartCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&allowFlags, "allow", nil, "ephemeral passkey public key(s) for this session")
 	cmd.Flags().StringVar(&pathsFlag, "paths", "", "comma-separated directories the wing can browse (default: ~/)")
 	cmd.Flags().BoolVar(&auditFlag, "audit", false, "enable audit logging for all egg sessions")
-	cmd.Flags().BoolVar(&localFlag, "local", false, "connect to localhost:8080 (for self-hosted wt serve)")
+	cmd.Flags().BoolVar(&localFlag, "local", false, "connect to local wt serve (uses WT_LOCAL_ADDR or http://localhost:8080)")
 	cmd.Flags().BoolVar(&rawReplayFlag, "raw-replay", false, "use raw replay buffer for reconnect instead of VTerm snapshot")
 
 	return cmd
@@ -953,7 +957,7 @@ func runWingWithContext(ctx context.Context, sighupCh <-chan os.Signal, roostFla
 	// Resolve roost URL
 	roostURL := roostFlag
 	if local && roostURL == "" {
-		roostURL = "http://localhost:8080"
+		roostURL = envOr("WT_LOCAL_ADDR", "http://localhost:8080")
 	}
 	if roostURL == "" {
 		roostURL = cfg.RoostURL
@@ -1047,7 +1051,7 @@ func runWingWithContext(ctx context.Context, sighupCh <-chan os.Signal, roostFla
 	}
 	fmt.Println()
 	if local || strings.Contains(roostURL, "localhost") {
-		fmt.Println("open http://localhost:8080 to start a terminal")
+		fmt.Printf("open %s to start a terminal\n", roostURL)
 	} else {
 		fmt.Println("open https://app.wingthing.ai to start a terminal")
 	}
